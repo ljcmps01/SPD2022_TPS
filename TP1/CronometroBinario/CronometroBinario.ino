@@ -1,8 +1,46 @@
+/* GRUPO=NULL
+ *  INTEGRANTES:
+ *    Obregon Alex 
+ *    Campos Alejo
+ */
+/*
+ *  Trabajo Práctico 1: Cronómetro Binario
+ *
+ *  Al iniciar la simulacion, todos los led deben comenzar apagados.
+ *  Cada 1 segundo que transcurra, se deben encender los led
+ *  de acuerdo al numero que representan.
+ *
+ *  Ejemplo:
+ *   
+ *  El numero 15 (0000001111) se representaria encendiendo los 
+ *  leds AMARILLO y NARANJA.
+ *  Al pasar al numero 16 (0000010000), se deben apagar todos 
+ *  los led anteriores y encenderse uno de los leds VERDES. 
+ *  Notese, en el ejemplo los 0 representan los led apagados 
+ *  y los 1 los led encendidos). 
+ *   
+ *  -------------------------------------------------------
+ *   
+ *  Al presionarse el boton START, debe iniciar el cronometro.
+ *  Volver a presionarlo hace que la secuencia se detenga. 
+ *  (Como si se hubiese presionado pausa).
+ *  Al presionarse el boton RESET, el cronometro
+ *  debe reiniciarse y arrancar de 0.
+ *
+ *  Tip: Modularizar la función que controla el encendido de los 
+ *  LEDS y de ser posible, todo el código para evitar repetir lineas lo mas posible.
+ *  Usar millis para controlar el tiempo del contador para que el cambio de los 
+ *  leds encendidos sea perceptible para el ojo humano y 
+ *  documentar cada función creada en el código. 
+ *  Un breve comentario que diga que es lo que hace esa función
+ *  y de corresponder, que retorna).
+*/
+
 #define BOTON_RST 2 //Defino el pin de RESET
 #define BOTON_START 3 //Defino el pin de START
 
-#define FLED 4     //Defino el primer PIN  de los LED
-#define MAXLEDS 13   //Defino la cantidad de LEDs conectados
+#define PRIMER_LED 4     //Defino el primer PIN  de los LED
+#define ULTIMO_LED 13   //Defino la cantidad de LEDs conectados
   
 #define INTERVALO 250  //El tiempo en milisegundos entre intervalos de millis
 #define MAXVALUE 1023 //El valor maximo que puede tomar el contador
@@ -31,7 +69,7 @@ void setup() {
   
   Serial.begin(9600);
   
-  for(int i = FLED;i <= MAXLEDS;i++){
+  for(int i = PRIMER_LED;i <= ULTIMO_LED;i++){
     digitalWrite(i, LOW);
     pinMode(i, OUTPUT);
   }
@@ -83,7 +121,7 @@ void bin2LED(int cont){
   Serial.print(cont);
   Serial.print("| binario: ");
   
-  for(int i = FLED;i <= MAXLEDS;i++){
+  for(int i = PRIMER_LED;i <= ULTIMO_LED;i++){
     int resto = cont % 2;
     Serial.print(resto);
     digitalWrite(i, resto);
