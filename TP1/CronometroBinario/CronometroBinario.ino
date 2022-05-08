@@ -100,16 +100,21 @@ void loop() {
   if(secuencia){    
     unsigned long millisAhora = millis();
     if(millisAhora - prevMillis >= INTERVALO){
-  //    Serial.println(contador);
       prevMillis = millisAhora;
-      
+
+      //Si el contador no llego a MAXVALUE
+      //incremento el contador
       if(contador < MAXVALUE){
         contador++;  
       }
+      //Caso contrario Deshabilito la secuencia
+      //Y reinicio el contador
       else{
         secuencia = 0; 
         contador = 0;
       }
+      //Llamo a la funcion para codificar el contador
+      //decimal a LEDs en binario
       bin2LED(contador);
     }
   }
@@ -120,7 +125,8 @@ void bin2LED(int cont){
   Serial.print("segundos: ");
   Serial.print(cont);
   Serial.print("| binario: ");
-  
+
+  //Cada iteracion de este for determina el estado de un LED
   for(int i = PRIMER_LED;i <= ULTIMO_LED;i++){
     int resto = cont % 2;
     Serial.print(resto);
