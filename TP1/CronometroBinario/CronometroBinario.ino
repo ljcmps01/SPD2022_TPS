@@ -1,10 +1,10 @@
-#define BTN_RST A1 //Defino el pin de RESET
-#define BTN_STR A0 //Defino el pin de START
+#define BTN_RST 2 //Defino el pin de RESET
+#define BTN_STR 3 //Defino el pin de START
 
-#define FLED 2     //Defino el primer PIN  de los LED
+#define FLED 4     //Defino el primer PIN  de los LED
 #define NLEDS 10   //Defino la cantidad de LEDs conectados
 
-#define INTERVALO 75  //El tiempo en milisegundos entre intervalos de millis
+#define INTERVALO 250  //El tiempo en milisegundos entre intervalos de millis
 #define MAXVALUE 1023 //El valor maximo que puede tomar el contador
 
 //Valores de estado de los botones
@@ -42,8 +42,8 @@ void loop() {
     //Si se presiona el boton:
     secuencia=0;
     contador=0;
-    bin2LED(contador,NLEDS,FLED);
     Serial.println("Toggle RST button");
+    bin2LED(contador,NLEDS,FLED);
   }
   botonRSTAntes=botonRSTAhora;
 
@@ -77,9 +77,14 @@ void loop() {
 }
 
 void bin2LED(int cont, int nLED, int iLED){
+  Serial.print("segundos: ");
+  Serial.print(cont);
+  Serial.print("| binario: ");
   for(int i=0;i<nLED;i++){
     int resto=cont%2;
+    Serial.print(resto);
     digitalWrite(i+iLED,resto);
     cont=cont/2;
   }
+  Serial.println("\n");
 }
