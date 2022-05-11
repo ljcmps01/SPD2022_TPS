@@ -42,7 +42,7 @@
 #define PRIMER_LED 4     //Defino el primer PIN  de los LED
 #define ULTIMO_LED 13   //Defino la cantidad de LEDs conectados
   
-#define INTERVALO 250  //El tiempo en milisegundos entre intervalos de millis
+#define INTERVALO 2  //El tiempo en milisegundos entre intervalos de millis
 #define MAXVALUE 1023 //El valor maximo que puede tomar el contador
 
 //Valores de estado de los botones
@@ -78,21 +78,23 @@ void setup() {
 void loop() {
   int botonRSTAhora = digitalRead(BOTON_RST);
 
+  //Si se presiona el boton de reset:
   if(botonRSTAhora == 1 && botonRSTAntes == 0){
-    //Si se presiona el boton:
+    //Deshabilito la secuencia y reinicio el contador a 0
     secuencia = 0;
     contador = 0;
-    Serial.println("Toggle RST button");
+    Serial.println("Boton RST button");
     bin2LED(contador);
   }
   botonRSTAntes = botonRSTAhora;
 
   int botonSTARTAhora = digitalRead(BOTON_START);
 
-  if(botonSTARTAhora == 1 && botonSTARTAntes == 0){
-    //Si se presiona el boton:   
+  //Si se presiona el boton:  
+  if(botonSTARTAhora == 1 && botonSTARTAntes == 0){ 
+    //Toggleo el estado de la secuencia
     secuencia =! secuencia;
-    Serial.println("Toggle STR button");
+    Serial.println("Boton START presionado");
     Serial.println(secuencia);
   }
   botonSTARTAntes = botonSTARTAhora;
@@ -122,17 +124,29 @@ void loop() {
 }
 
 void bin2LED(int cont){
+  bool serialOUT;
+
+  //Si el contador es distinto de 0 habilito la impresion por monitor serial
+  cont!=0?serialOUT=1:serialOUT=0;
+  
+  if(serialOUT){
   Serial.print("segundos: ");
   Serial.print(cont);
-  Serial.print("| binario: ");
-
+  Serial.print("\t|  binario: ");
+  }
   //Cada iteracion de este for determina el estado de un LED
   for(int i = PRIMER_LED;i <= ULTIMO_LED;i++){
+    //Calculo el valor de un "bit/led"
     int resto = cont % 2;
-    Serial.print(resto);
+    //"Saco" el valor del resto por el pin correspondiente del LED
     digitalWrite(i, resto);
+    
+    //Preparo el siguiente valor a calcular
     cont = cont/2;
+
+    if(serialOUT){
+    Serial.print(resto);
+    }
   }
-  
-  Serial.println("\n");
+  Serial.println("");
 }
