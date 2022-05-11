@@ -130,9 +130,9 @@ void bin2LED(int cont){
   cont!=0?serialOUT=1:serialOUT=0;
   
   if(serialOUT){
-  Serial.print("segundos: ");
-  Serial.print(cont);
-  Serial.print("\t|  binario: ");
+    Serial.print("segundos: ");
+    Serial.print(cont);
+    Serial.print("\t|  binario: ");
   }
   //Cada iteracion de este for determina el estado de un LED
   for(int i = PRIMER_LED;i <= ULTIMO_LED;i++){
