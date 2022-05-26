@@ -14,6 +14,7 @@ char teclado[FILAS][COLUMNAS] = {
 };
 byte filasPins[FILAS] = {2, 3, 4, 5};
 byte columnasPins[COLUMNAS] = {6, 7, 8, 9};
+int cualBoton;
 
 char contra[MAX_CARACTER + 1]= "2C2021";
 char contraIngresada[MAX_CARACTER + 1];
@@ -22,6 +23,7 @@ int comContra;
 
 int comparacionContra(char contraI[], int tam, int cNull);
 void initVector(char vec[], int tam);
+void ingresoNuevaContra(char aContra[], int tam);
 void asignarContra(char nueva[], char actual[], int tam);
 
 Keypad keypad = Keypad( makeKeymap(teclado), filasPins, columnasPins, FILAS, COLUMNAS );
@@ -45,7 +47,22 @@ void loop(){
     Serial.println(contraIngresada);
     cont++;
   }
+
+  cualBoton = analogRead(BOTONES);
   
+  if(cualBoton)
+  {
+    Serial.print("cualBoton: ");
+    Serial.println(cualBoton);
+    if(cualBoton)
+    {
+      Serial.print("Contraseña actual: ");
+      Serial.println(contra);
+      ingresoNuevaContra(contra, MAX_CARACTER);
+      Serial.print("Nueva Contraseña : ");
+      Serial.println(contra);
+    }
+  }
 
   if(cont == MAX_CARACTER)
   {
@@ -83,7 +100,34 @@ void initVector(char vec[], int tam)
   }
 }
 
+void ingresoNuevaContra(char aContra[], int tam)
+{
+  char tecla = '\0';
+  char nContra[tam + 1];
+
+  initVector(nContra, tam + 1);
+
+  for(int i = 0; i < tam; i++)
+  {
+    while(!tecla)
+    {
+      tecla = keypad.getKey();
+    }  
+
+    nContra[i] = tecla;
+    tecla = '\0';
+    Serial.println(nContra);
+  }
+
+  asignarContra(nContra, aContra, tam);
+}
+
 void asignarContra(char nueva[], char actual[], int tam)
 {
-  
+  initVector(actual, tam + 1);
+
+  for(int i = 0; i < tam; i++)
+  {
+    actual[i] = nueva[i];
+  }
 }
