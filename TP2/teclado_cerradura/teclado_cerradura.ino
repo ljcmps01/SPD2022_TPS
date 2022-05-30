@@ -1,4 +1,15 @@
+/*
+TODO:
+  -Funcion imprimir menu principal
+  -Cambiar Funcion compararContraseña
+      --Deberia realizar el analisis completo e impresion en lcd del resultado
+  -Sacar delays
+  -Agregar doxygen de las funciones
+  -Analizar necesidad de macro C_NULL
+*/
+
 #include <Keypad.h>
+#include <LiquidCrystal.h>
 
 #define FILAS 4
 #define COLUMNAS 4
@@ -6,36 +17,84 @@
 #define MAX_CARACTER 7
 #define BOTONES A4
 
+
+//***********************SETUP KEYPAD******************************
+
 char teclado[FILAS][COLUMNAS] = {
   {'1','2','3','A'},
   {'4','5','6','B'},
   {'7','8','9','C'},
   {'*','0','#','D'}
 };
-byte filasPins[FILAS] = {2, 3, 4, 5};
-byte columnasPins[COLUMNAS] = {6, 7, 8, 9};
+
+byte columnasPins[COLUMNAS] = {3,2,1,0};
+byte filasPins[FILAS] = {7,6,5,4};
+Keypad keypad = Keypad( makeKeymap(teclado), filasPins, columnasPins, FILAS, COLUMNAS );
+
 int cualBoton;
 
-char contra[MAX_CARACTER + 1]= "2C2021";
+//***********************FIN SETUP KEYPAD******************************
+
+//***********************SETUP LCD******************************
+const int rs = 13, en = 8, d4 = A0, d5 = A1, d6 = A2, d7 = A3;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+byte lockOn[8]=
+{
+  B01110,
+    B01010,
+    B11111,
+    B11111,
+    B11011,
+    B11011,
+    B01110,
+    B00000,
+};
+
+byte lockOff[8]=
+{
+  B01110,
+    B01010,
+    B01000,
+    B11111,
+    B11111,
+    B11011,
+    B11011,
+    B01110,
+};
+
+//***********************FIN SETUP LCD******************************
+
+
+char contra[MAX_CARACTER + 1]= "2C20210";
 char contraIngresada[MAX_CARACTER + 1];
 int cont = 0;
 int comContra;
+
 
 int comparacionContra(char contraI[], int tam, int cNull);
 void initVector(char vec[], int tam);
 void ingresoNuevaContra(char aContra[], int tam);
 void asignarContra(char nueva[], char actual[], int tam);
 
-Keypad keypad = Keypad( makeKeymap(teclado), filasPins, columnasPins, FILAS, COLUMNAS );
+
 
 void setup(){
   pinMode(BOTONES, INPUT);
   
   initVector(contraIngresada, MAX_CARACTER + 1);
   
-  Serial.begin(9600);
-  Serial.println(contra);
-  Serial.println(contraIngresada);
+  lcd.begin(16,2);
+  lcd.createChar(7,lockOn);
+  lcd.createChar(8,lockOff);  
+  
+  lcd.setCursor(0,0);
+  lcd.print("Password ");
+  lcd.write(7);
+  // Serial.println(contraIngresada);
+  delay(1000);
+  lcd.setCursor(0,1);
+  
 }
   
 void loop(){
@@ -43,36 +102,82 @@ void loop(){
 
   if(tecla)
   {
+    lcd.setCursor(0,1);
     contraIngresada[cont] = tecla;
-    Serial.println(contraIngresada);
+    lcd.print(contraIngresada);
     cont++;
   }
 
   cualBoton = analogRead(BOTONES);
   
-  if(cualBoton)
+
+  //Ninguno-1023
+  //1-767
+  //2- 682
+  //3- 512
+  if(cualBoton<=1000)
   {
-    Serial.print("cualBoton: ");
-    Serial.println(cualBoton);
-    if(cualBoton)
+    // Serial.print("cualBoton: ");
+    lcd.print(cualBoton);
+    if(cualBoton>700)//Config
     {
-      Serial.print("Contraseña actual: ");
-      Serial.println(contra);
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Nueva contra: ");
+      lcd.setCursor(0,1);
+      // Serial.println(contra);
       ingresoNuevaContra(contra, MAX_CARACTER);
-      Serial.print("Nueva Contraseña : ");
-      Serial.println(contra);
+      
+      
     }
+    else
+    {
+      if(cualBoton>600)//Test Pass
+      {
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("Test Pass: ");
+      }
+      else  //Reset
+      {
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("Reset: ");
+        initVector(contraIngresada,MAX_CARACTER);
+      }
+    }
+    delay(1000);
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Password ");
+    lcd.write(7);
+    lcd.setCursor(0,1);
   }
 
   if(cont == MAX_CARACTER)
   {
-    Serial.println(contraIngresada);
-    Serial.println(cont);
+    // Serial.println(contraIngresada);
+    // Serial.println(cont);
+    lcd.clear();
     comContra = comparacionContra(contraIngresada, MAX_CARACTER, C_NULL);
-    Serial.println(comContra);
+    lcd.setCursor(0,0);
+    if(comContra)
+    {
+      
+      lcd.print("Wrong Password!");
+      lcd.write(7); 
+    }
+    else
+    {
+    
+      lcd.print("Password OK!");
+      lcd.write(8);
+    }
+    lcd.setCursor(0,1);
     cont = 0;
     initVector(contraIngresada, MAX_CARACTER + 1);
   }
+  delay(5);
 }
 
 int comparacionContra(char contraI[], int tam, int cNull)
@@ -115,8 +220,9 @@ void ingresoNuevaContra(char aContra[], int tam)
     }  
 
     nContra[i] = tecla;
+    lcd.print(tecla);
     tecla = '\0';
-    Serial.println(nContra);
+    // Serial.println(nContra);
   }
 
   asignarContra(nContra, aContra, tam);
