@@ -1,11 +1,10 @@
 /*
 TODO:
-  -Funcion imprimir menu principal
-  -Cambiar Funcion compararContraseña
-      --Deberia realizar el analisis completo e impresion en lcd del resultado
-  -Sacar delays
-  -Agregar doxygen de las funciones
-  -Analizar necesidad de macro C_NULL
+  [Listo, imprimirTitulo]Funcion imprimir menu principal
+    Cambiar Funcion compararContraseña
+      -Deberia realizar el analisis completo e impresion en lcd del resultado
+  Sacar delays
+  Agregar doxygen de las funciones
 */
 
 #include <Keypad.h>
@@ -88,12 +87,7 @@ void setup(){
   lcd.createChar(7,lockOn);
   lcd.createChar(8,lockOff);  
   
-  lcd.setCursor(0,0);
-  lcd.print("Password ");
-  lcd.write(7);
-  // Serial.println(contraIngresada);
-  delay(1000);
-  lcd.setCursor(0,1);
+  imprimirTitulo("Password ",7);
   
 }
   
@@ -121,10 +115,7 @@ void loop(){
     lcd.print(cualBoton);
     if(cualBoton>700)//Config
     {
-      lcd.clear();
-      lcd.setCursor(0,0);
-      lcd.print("Nueva contra: ");
-      lcd.setCursor(0,1);
+      imprimirTitulo("nueva contra",0);
       // Serial.println(contra);
       ingresoNuevaContra(contra, MAX_CARACTER);
       
@@ -134,33 +125,23 @@ void loop(){
     {
       if(cualBoton>600)//Test Pass
       {
-        lcd.clear();
-        lcd.setCursor(0,0);
-        lcd.print("Test Pass: ");
+        imprimirTitulo("Test Pass",0);
       }
       else  //Reset
       {
-        lcd.clear();
-        lcd.setCursor(0,0);
-        lcd.print("Reset: ");
+        imprimirTitulo("Reset",0);
         initVector(contraIngresada,MAX_CARACTER);
+        cont=0;
       }
     }
     delay(1000);
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("Password ");
-    lcd.write(7);
-    lcd.setCursor(0,1);
+    imprimirTitulo("Password ",7);
   }
 
   if(cont == MAX_CARACTER)
   {
-    // Serial.println(contraIngresada);
-    // Serial.println(cont);
-    lcd.clear();
+    limpiarPantalla();
     comContra = comparacionContra(contraIngresada, MAX_CARACTER, C_NULL);
-    lcd.setCursor(0,0);
     if(comContra)
     {
       
@@ -236,4 +217,31 @@ void asignarContra(char nueva[], char actual[], int tam)
   {
     actual[i] = nueva[i];
   }
+}
+
+
+void limpiarPantalla()
+{
+  lcd.clear();
+  lcd.setCursor(0,0);
+}
+
+void imprimirTitulo(char *titulo, int cChar)
+{
+  limpiarPantalla();
+  lcd.print(titulo);
+  if(cChar)
+  {
+    lcd.write(7);
+  }
+  lcd.setCursor(0,1);
+}
+
+
+void pantallaPrincipal()
+{
+  limpiarPantalla();
+  lcd.print("Password ");
+  lcd.write(7);
+  lcd.setCursor(0,1);
 }
