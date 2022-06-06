@@ -1,8 +1,8 @@
 /*
 TODO:
   [Listo, imprimirTitulo]Funcion imprimir menu principal
-    Cambiar Funcion compararContraseña
-      -Deberia realizar el analisis completo e impresion en lcd del resultado
+  [Listo, se creo funcion imprimirComparacion]Cambiar Funcion compararContraseña
+    -Deberia realizar el analisis completo e impresion en lcd del resultado
   Sacar delays
   Agregar doxygen de las funciones
 */
@@ -65,7 +65,7 @@ byte lockOff[8]=
 //***********************FIN SETUP LCD******************************
 
 
-char contra[MAX_CARACTER + 1]= "2C20210";
+char contra[MAX_CARACTER + 1]= "2C2021";
 char contraIngresada[MAX_CARACTER + 1];
 int cont = 0;
 int comContra;
@@ -126,6 +126,7 @@ void loop(){
       if(cualBoton>600)//Test Pass
       {
         imprimirTitulo("Test Pass",0);
+        imprimirComparacion(contraIngresada, MAX_CARACTER, C_NULL);
       }
       else  //Reset
       {
@@ -140,23 +141,7 @@ void loop(){
 
   if(cont == MAX_CARACTER)
   {
-    limpiarPantalla();
-    comContra = comparacionContra(contraIngresada, MAX_CARACTER, C_NULL);
-    if(comContra)
-    {
-      
-      lcd.print("Wrong Password!");
-      lcd.write(7); 
-    }
-    else
-    {
-    
-      lcd.print("Password OK!");
-      lcd.write(8);
-    }
-    lcd.setCursor(0,1);
-    cont = 0;
-    initVector(contraIngresada, MAX_CARACTER + 1);
+    imprimirComparacion(contraIngresada, MAX_CARACTER, C_NULL);
   }
   delay(5);
 }
@@ -177,6 +162,26 @@ int comparacionContra(char contraI[], int tam, int cNull)
   return cmp;
 }
 
+void imprimirComparacion(char contraI[], int tam, int cNull)
+{
+  limpiarPantalla();
+    comContra = comparacionContra(contraI, tam, cNull);
+    if(comContra)
+    {
+      
+      lcd.print("Wrong Password!");
+      lcd.write(7); 
+    }
+    else
+    {
+    
+      lcd.print("Password OK!");
+      lcd.write(8);
+    }
+    lcd.setCursor(0,1);
+    cont = 0;
+    initVector(contraI, tam + 1);  
+}
 
 void initVector(char vec[], int tam)
 {
@@ -234,14 +239,5 @@ void imprimirTitulo(char *titulo, int cChar)
   {
     lcd.write(7);
   }
-  lcd.setCursor(0,1);
-}
-
-
-void pantallaPrincipal()
-{
-  limpiarPantalla();
-  lcd.print("Password ");
-  lcd.write(7);
   lcd.setCursor(0,1);
 }
