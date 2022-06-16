@@ -1,16 +1,15 @@
 /*
 TODO:
-  ARREGLAR FUNCION NUEVACONTRA para tamaño dinamico de contraseña
     IMPORTANTE ARREGLAR BOTONES FUNCION
     [Listo, imprimirTitulo]Funcion imprimir menu principal
     [Listo, se creo funcion imprimirComparacion]Cambiar Funcion compararContraseña
       -Deberia realizar el analisis completo e impresion en lcd del resultado
-    Sacar delays
     Agregar doxygen de las funciones
 */
 
 #include <Keypad.h>
 #include <LiquidCrystal.h>
+#include <Servo.h>
 
 #define FILAS 4
 #define COLUMNAS 4
@@ -21,6 +20,8 @@ TODO:
 #define RST A4
 #define SET A5
 
+#define LOCK_ON 90
+#define LOCK_OFF 0
 
 #define LED_OK 10
 #define LED_FAIL 11
@@ -76,6 +77,10 @@ byte lockOff[8]=
 //***********************FIN SETUP LCD******************************
 
 
+//***********************SETUP Servo******************************
+Servo servoLock;
+
+//***********************FIN SETUP Servo******************************
 char contra[MAX_CARACTER + 1]= "2C2021";
 char contraIngresada[MAX_CARACTER + 1];
 int cont = 0;
@@ -88,6 +93,9 @@ void initVector(char vec[], int tam);
 void ingresoNuevaContra(char aContra[], int tam);
 void asignarContra(char nueva[], char actual[], int tam);
 
+int estadoBoton(int *estadoPrevio,int *estadoActual, char* contra, int tam,void(*callback)(char*,int));
+
+unsigned int duracion;
 
 
 void setup(){
@@ -97,6 +105,9 @@ void setup(){
   
   pinMode(LED_OK, OUTPUT);  
   pinMode(LED_FAIL, OUTPUT);
+  
+  servoLock.attach(9);
+  servoLock.write(LOCK_ON);
   
   initVector(contraIngresada, MAX_CARACTER + 1);
   
@@ -115,8 +126,6 @@ void loop(){
   int botonRSTAhora = digitalRead(RST);
   int botonSETAhora = digitalRead(SET);
   
-  unsigned int duracion;
-  
   if(tecla)
   {
     lcd.setCursor(0,1);
@@ -124,45 +133,16 @@ void loop(){
     lcd.print(contraIngresada);
     cont++;
   }
-
-  //Si se presiona el boton de test:
-  if(botonTESTAhora == 1 && botonTESTAntes == 0){
-    imprimirTitulo("Test Pass",0);
-    imprimirComparacion(contraIngresada, MAX_CARACTER);
-    prevMillis=millis();
-    duracion = 2000;
-    flagPrincipal=1;
-  }
-  botonTESTAntes = botonTESTAhora;
-  //Fin algoritmo del boton de test
   
-  if(botonRSTAhora == 1 && botonRSTAntes == 0)
-  {
-    imprimirTitulo("Reset",0);
-    initVector(contraIngresada,MAX_CARACTER);
-    cont=0;
-    prevMillis=millis();
-    duracion = 2000;
-    flagPrincipal=1;
-  }
-  botonRSTAntes = botonRSTAhora;
-  //Fin algoritmo del boton de reset
+  estadoBoton(&botonTESTAntes, &botonTESTAhora, contraIngresada, MAX_CARACTER, funcionTEST);
+  estadoBoton(&botonRSTAntes, &botonRSTAhora, contraIngresada, MAX_CARACTER, funcionRST);
+  estadoBoton(&botonSETAntes, &botonSETAhora, contra, MAX_CARACTER, funcionSET);
   
-  if(botonSETAhora == 1 && botonSETAntes == 0)
-  {
-    imprimirTitulo("Nueva contra",0);
-    ingresoNuevaContra(contra, MAX_CARACTER);
-    prevMillis=millis();
-    duracion = 1000;
-    flagPrincipal=1;
-  }
-  botonSETAntes = botonSETAhora;
-  //Fin algoritmo del boton de set
-
   if(cont == MAX_CARACTER)
   {
     imprimirComparacion(contraIngresada, MAX_CARACTER);
     prevMillis=millis();
+    duracion = 2000;
     flagPrincipal=1;    
   }
   
@@ -174,6 +154,7 @@ void loop(){
     flagPrincipal=0;
       digitalWrite(LED_OK,0);
       digitalWrite(LED_FAIL,0);
+      servoLock.write(LOCK_ON);
     }
   }
   
@@ -188,7 +169,7 @@ void imprimirComparacion(char contraI[], int tam)
   if(comContra)
   {
 
-    lcd.print("Wrong Password!");
+    lcd.print("Password FAIL!");
     lcd.write(7); 
 
     digitalWrite(LED_FAIL,1);
@@ -199,6 +180,7 @@ void imprimirComparacion(char contraI[], int tam)
     lcd.print("Password OK!");
     lcd.write(8);
     digitalWrite(LED_OK,1);
+    servoLock.write(LOCK_OFF);
   }
   lcd.setCursor(0,1);
   cont = 0;
@@ -228,9 +210,10 @@ void ingresoNuevaContra(char aContra[], int tam)
     {
       tecla = keypad.getKey();
       
-      if(digitalRead(SET))
+      if(digitalRead(TEST) && i>0)
       {
         setFlag = 0;
+        botonTESTAntes=1;
       }
     }  
 
@@ -238,7 +221,8 @@ void ingresoNuevaContra(char aContra[], int tam)
     lcd.print(tecla);
     tecla = '\0';
   }
-
+  lcd.setCursor(0,0);
+  lcd.print("Contra guardada!");
   asignarContra(nContra, aContra, tam);
 }
 
@@ -272,18 +256,51 @@ void imprimirTitulo(char *titulo, int cChar)
 
 int intervalo(unsigned long *prev,unsigned int tiempo)
 {
-  if(millis()-*prev>=tiempo)
+  unsigned long actual=millis();
+  if(actual-*prev>=tiempo)
   {
-    *prev=millis();
+    *prev=actual;
     return 1;
   }
   return 0;
 }
   
-int estadoBoton(int *estadoPrevio,int *estadoActual, void(*callback)(char*,int))
+int estadoBoton(int *estadoPrevio,int *estadoActual, char* contra, int tam,void(*callback)(char*,int))
 {
-  if(*estadoPrevio==1&& *estadoActual==0)
+  if(*estadoPrevio == 0&& *estadoActual == 1)
   {
+    callback(contra,tam);
   }
+  
+  *estadoPrevio = *estadoActual;
   return 0; 
+}
+
+
+void funcionTEST(char contraI[],int tam)
+{
+  imprimirTitulo("Test Pass",0);
+    imprimirComparacion(contraI, tam);
+    prevMillis=millis();
+    duracion = 2000;
+    flagPrincipal = 1;
+}
+
+void funcionRST(char contraI[],int tam)
+{
+  imprimirTitulo("Reset",0);
+    initVector(contraI, tam);
+    cont=0;
+    prevMillis=millis();
+    duracion = 2000;
+    flagPrincipal = 1;
+}
+
+void funcionSET(char contra[],int tam)
+{
+  imprimirTitulo("Nueva contra",0);
+    ingresoNuevaContra(contra, tam);
+    prevMillis=millis();
+    duracion = 1000;
+    flagPrincipal = 1;
 }
