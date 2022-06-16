@@ -1,10 +1,12 @@
 /*
 TODO:
-  [Listo, imprimirTitulo]Funcion imprimir menu principal
-  [Listo, se creo funcion imprimirComparacion]Cambiar Funcion compararContraseña
-    -Deberia realizar el analisis completo e impresion en lcd del resultado
-  Sacar delays
-  Agregar doxygen de las funciones
+  ARREGLAR FUNCION NUEVACONTRA para tamaño dinamico de contraseña
+    IMPORTANTE ARREGLAR BOTONES FUNCION
+    [Listo, imprimirTitulo]Funcion imprimir menu principal
+    [Listo, se creo funcion imprimirComparacion]Cambiar Funcion compararContraseña
+      -Deberia realizar el analisis completo e impresion en lcd del resultado
+    Sacar delays
+    Agregar doxygen de las funciones
 */
 
 #include <Keypad.h>
@@ -14,7 +16,14 @@ TODO:
 #define COLUMNAS 4
 #define C_NULL '\0'
 #define MAX_CARACTER 7
-#define BOTONES A4
+
+#define TEST 12
+#define RST A4
+#define SET A5
+
+
+#define LED_OK 10
+#define LED_FAIL 11
 
 
 //***********************SETUP KEYPAD******************************
@@ -30,7 +39,9 @@ byte columnasPins[COLUMNAS] = {3,2,1,0};
 byte filasPins[FILAS] = {7,6,5,4};
 Keypad keypad = Keypad( makeKeymap(teclado), filasPins, columnasPins, FILAS, COLUMNAS );
 
-int cualBoton;
+int botonTESTAntes=0;
+int botonRSTAntes=0;
+int botonSETAntes=0;
 
 //***********************FIN SETUP KEYPAD******************************
 
@@ -70,8 +81,9 @@ char contraIngresada[MAX_CARACTER + 1];
 int cont = 0;
 int comContra;
 
+unsigned long prevMillis=0;
+bool flagPrincipal=0;
 
-int comparacionContra(char contraI[], int tam, int cNull);
 void initVector(char vec[], int tam);
 void ingresoNuevaContra(char aContra[], int tam);
 void asignarContra(char nueva[], char actual[], int tam);
@@ -79,7 +91,12 @@ void asignarContra(char nueva[], char actual[], int tam);
 
 
 void setup(){
-  pinMode(BOTONES, INPUT);
+  pinMode(TEST, INPUT);
+  pinMode(TEST, INPUT);
+  pinMode(TEST, INPUT);
+  
+  pinMode(LED_OK, OUTPUT);  
+  pinMode(LED_FAIL, OUTPUT);
   
   initVector(contraIngresada, MAX_CARACTER + 1);
   
@@ -93,7 +110,13 @@ void setup(){
   
 void loop(){
   char tecla = keypad.getKey();
-
+  
+  int botonTESTAhora = digitalRead(TEST);
+  int botonRSTAhora = digitalRead(RST);
+  int botonSETAhora = digitalRead(SET);
+  
+  unsigned int duracion;
+  
   if(tecla)
   {
     lcd.setCursor(0,1);
@@ -102,85 +125,84 @@ void loop(){
     cont++;
   }
 
-  cualBoton = analogRead(BOTONES);
-  
-
-  //Ninguno-1023
-  //1-767
-  //2- 682
-  //3- 512
-  if(cualBoton<=1000)
-  {
-    // Serial.print("cualBoton: ");
-    lcd.print(cualBoton);
-    if(cualBoton>700)//Config
-    {
-      imprimirTitulo("nueva contra",0);
-      // Serial.println(contra);
-      ingresoNuevaContra(contra, MAX_CARACTER);
-      
-      
-    }
-    else
-    {
-      if(cualBoton>600)//Test Pass
-      {
-        imprimirTitulo("Test Pass",0);
-        imprimirComparacion(contraIngresada, MAX_CARACTER, C_NULL);
-      }
-      else  //Reset
-      {
-        imprimirTitulo("Reset",0);
-        initVector(contraIngresada,MAX_CARACTER);
-        cont=0;
-      }
-    }
-    delay(1000);
-    imprimirTitulo("Password ",7);
+  //Si se presiona el boton de test:
+  if(botonTESTAhora == 1 && botonTESTAntes == 0){
+    imprimirTitulo("Test Pass",0);
+    imprimirComparacion(contraIngresada, MAX_CARACTER);
+    prevMillis=millis();
+    duracion = 2000;
+    flagPrincipal=1;
   }
+  botonTESTAntes = botonTESTAhora;
+  //Fin algoritmo del boton de test
+  
+  if(botonRSTAhora == 1 && botonRSTAntes == 0)
+  {
+    imprimirTitulo("Reset",0);
+    initVector(contraIngresada,MAX_CARACTER);
+    cont=0;
+    prevMillis=millis();
+    duracion = 2000;
+    flagPrincipal=1;
+  }
+  botonRSTAntes = botonRSTAhora;
+  //Fin algoritmo del boton de reset
+  
+  if(botonSETAhora == 1 && botonSETAntes == 0)
+  {
+    imprimirTitulo("Nueva contra",0);
+    ingresoNuevaContra(contra, MAX_CARACTER);
+    prevMillis=millis();
+    duracion = 1000;
+    flagPrincipal=1;
+  }
+  botonSETAntes = botonSETAhora;
+  //Fin algoritmo del boton de set
 
   if(cont == MAX_CARACTER)
   {
-    imprimirComparacion(contraIngresada, MAX_CARACTER, C_NULL);
+    imprimirComparacion(contraIngresada, MAX_CARACTER);
+    prevMillis=millis();
+    flagPrincipal=1;    
   }
-  delay(5);
-}
-
-int comparacionContra(char contraI[], int tam, int cNull)
-{
-  int cmp = 0;
-
-  for(int i = 0; i < tam && contraI[i] != cNull; i++)
+  
+  if(flagPrincipal)
   {
-    if(contraI[i] != contra[i])
+    if(intervalo(&prevMillis,duracion))
     {
-      cmp = 1;
-      break; 
+      imprimirTitulo("Password ",7);
+    flagPrincipal=0;
+      digitalWrite(LED_OK,0);
+      digitalWrite(LED_FAIL,0);
     }
   }
   
-  return cmp;
+  delay(5);
 }
 
-void imprimirComparacion(char contraI[], int tam, int cNull)
+
+void imprimirComparacion(char contraI[], int tam)
 {
   limpiarPantalla();
-    comContra = comparacionContra(contraI, tam, cNull);
-    if(comContra)
-    {
-      
-      lcd.print("Wrong Password!");
-      lcd.write(7); 
-    }
-    else
-    {
-    
-      lcd.print("Password OK!");
-      lcd.write(8);
-    }
-    lcd.setCursor(0,1);
-    cont = 0;
-    initVector(contraI, tam + 1);  
+  comContra=strcmp(contraI,contra);
+  if(comContra)
+  {
+
+    lcd.print("Wrong Password!");
+    lcd.write(7); 
+
+    digitalWrite(LED_FAIL,1);
+  }
+  else
+  {
+
+    lcd.print("Password OK!");
+    lcd.write(8);
+    digitalWrite(LED_OK,1);
+  }
+  lcd.setCursor(0,1);
+  cont = 0;
+  initVector(contraI, tam + 1);  
 }
 
 void initVector(char vec[], int tam)
@@ -191,24 +213,30 @@ void initVector(char vec[], int tam)
   }
 }
 
+
 void ingresoNuevaContra(char aContra[], int tam)
 {
   char tecla = '\0';
   char nContra[tam + 1];
+  int setFlag = 1;
 
   initVector(nContra, tam + 1);
 
-  for(int i = 0; i < tam; i++)
+  for(int i = 0; i < tam && setFlag; i++)
   {
-    while(!tecla)
+    while(!tecla && setFlag)
     {
       tecla = keypad.getKey();
+      
+      if(digitalRead(SET))
+      {
+        setFlag = 0;
+      }
     }  
 
     nContra[i] = tecla;
     lcd.print(tecla);
     tecla = '\0';
-    // Serial.println(nContra);
   }
 
   asignarContra(nContra, aContra, tam);
@@ -237,7 +265,25 @@ void imprimirTitulo(char *titulo, int cChar)
   lcd.print(titulo);
   if(cChar)
   {
-    lcd.write(7);
+    lcd.write(cChar);
   }
   lcd.setCursor(0,1);
+}
+
+int intervalo(unsigned long *prev,unsigned int tiempo)
+{
+  if(millis()-*prev>=tiempo)
+  {
+    *prev=millis();
+    return 1;
+  }
+  return 0;
+}
+  
+int estadoBoton(int *estadoPrevio,int *estadoActual, void(*callback)(char*,int))
+{
+  if(*estadoPrevio==1&& *estadoActual==0)
+  {
+  }
+  return 0; 
 }
